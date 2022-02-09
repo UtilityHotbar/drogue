@@ -16,5 +16,5 @@ Download `drogue.py`. Run it using Python 3.8 or above. Newcomers are highly enc
 * c: check status
 
 ### Options (use when starting new game from command line):
-* --vb: verbose descriptions
-* --seed: starting seed
+* `--vb`: verbose descriptions
+* `--seed`: starting seed
