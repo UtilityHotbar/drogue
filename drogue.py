@@ -92,6 +92,7 @@ def run_fight(player):
     if choice == 'r':
         if roll('1d6') < 3:
             print('You escape!')
+            return player
         else:
             print(f'{mon_name} catches up, and it attacks first!')
             player['effects'] = modify_array(player['effects'], 'paralysis', 1)
