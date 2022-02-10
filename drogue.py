@@ -56,7 +56,7 @@ def generate_new_level(curr_depth):
 def run_fight(player):
     if check_exists(player['effects'], 'invisibility'):
         print('Invisible, you sneak by!')
-        return
+        return player
     mon_hp = roll(f'{max(round(player["level"]/5),1)}d6')+player['level']
     mon_atk = roll('1d6')+player['level']
     mon_name = ''
