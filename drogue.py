@@ -163,7 +163,7 @@ def main(verbose_mode):
                         for char in 'agimt':
                             display_string += char+str(curr_room.count(char)-done_encs.count(char))+'\t'
                     else:
-                        print('?'+str(len(curr_room)))
+                        print('?'+str(len(curr_room[curr_enc:])))
                     print(display_string)
                 else:
                     print('ROOM CONTENTS:')
@@ -174,7 +174,7 @@ def main(verbose_mode):
                         print(f'Items: {curr_room.count("i")-done_encs.count("i")}')
                         print(f'Traps: {curr_room.count("t")-done_encs.count("t")}')
                     else:
-                        print(f'???: {len(curr_room)}')
+                        print(f'???: {len(curr_room[curr_enc:])}')
                     print('\nPLAYER STATUS:')
                     print(f'Current level: {player["level"]}')
                     print(f'Rooms in this level: {curr_room_id+1}/{len(curr_level)}')
@@ -236,7 +236,7 @@ def main(verbose_mode):
                         player['items'] = modify_array(player['items'], found_item, 1)
                     curr_enc += 1
                     for effect in player['effects']:
-                        player['effects'] = modify_array(player['effects'], effect, -1)
+                        player['effects'] = modify_array(player['effects'], get_tab_split(effect), -1)
                     if not check_exists(player['effects'], 'saturation'):
                         print('You are hungry!')
                         player['hp'] -= 1
