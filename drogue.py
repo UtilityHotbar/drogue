@@ -15,6 +15,10 @@ MUNDANE_TABLE = ['torch', 'torch', 'torch', 'sword', 'shield']
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka','ma', ' ']
 
 
+def get_tab_split(obj):
+    return '\t'.join(obj.split('\t')[:-1])
+
+
 def roll(dice_string) -> int:
     dice_string = str(dice_string)
     # Selectively find and replace all instances of dice notation e.g. 3d6 or 2d6kh1
@@ -84,7 +88,7 @@ def score_calc(player):
 
 def check_exists(array, thing):
     for obj in array:
-        if '\t'.join(obj.split('\t')[:-1]) == thing:
+        if get_tab_split(obj) == thing:
             return True
     return False
 
@@ -93,10 +97,10 @@ def modify_array(array, thing, amt):
     narray = []
     added = True
     for obj in array:
-        if '\t'.join(obj.split('\t')[:-1]) == thing:
+        if get_tab_split(obj) == thing:
             namt = int(obj.split('\t')[-1])+amt
             if namt > 0:
-                narray.append('\t'.join(obj.split('\t')[:-1])+'\t'+str(namt))
+                narray.append(get_tab_split(obj)+'\t'+str(namt))
         else:
             narray.append(obj)
     if not added and amt > 0:
@@ -197,6 +201,9 @@ def main(verbose_mode):
                                         found_item = random.choice(TREASURE_TABLE)
                                         print(f'You are give a {found_item}.')
                                         player['items'] = modify_array(player['items'], found_item, 1)
+                                else:
+                                    print('Nobody\'s on the other side...')
+                                break
                             elif pray == 'n':
                                 print('You give it a pass.')
                                 break
@@ -253,9 +260,11 @@ def main(verbose_mode):
                                     item_amt = int(item_choice[1])
                                 else:
                                     item_amt = 1
-                                target_item = player['items'][item_code-1]
-                                player['items'] = modify_array(player['items'], target_item, item_amt)
+                                target_item = get_tab_split(player['items'][item_code-1])
+                                print(f'Using {target_item}.')
+                                player['items'] = modify_array(player['items'], target_item, -item_amt)
                                 curr_room, player = use_item(curr_room, player, target_item, item_amt)
+                                break
                             except ValueError:
                                 print(INVALID_INPUT_MESSAGE)
                 elif choice == 'c':
