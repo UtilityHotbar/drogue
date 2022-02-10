@@ -2,7 +2,7 @@ import random
 import argparse
 import os
 import re
-import time
+
 
 thingstring = 'agiiimmt'
 INVALID_INPUT_MESSAGE = 'Invalid input.'
@@ -12,7 +12,7 @@ TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming',
                   'invisibility potion', 'scroll of fireball']
 MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield']
 
-MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka','ma', ' ']
+MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka', 'ma', ' ']
 
 
 def get_tab_split(obj):
@@ -125,6 +125,7 @@ def use_item(curr_room, player, item, amt):
     if item == 'torch':
         player['effects'] = modify_array(player['effects'], 'light', 5 * amt)
     elif item == 'food':
+        player['hp'] += amt
         player['effects'] = modify_array(player['effects'], 'saturation', 15 * amt)
     elif item == 'scroll of smiting' or item == 'scroll of charming':
         for _ in range(amt):
@@ -324,11 +325,11 @@ def main(verbose_mode):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Dimly-lit dungeons, deep delving dooms.')
     parser.add_argument('--seed', type=str, help='Seed for the game.', default='')
-    parser.add_argument('--verbose', '--vb', help='Verbose mode.', action='store_true', default=False)
+    parser.add_argument('--verbose', '-vb', help='Verbose mode.', action='store_true', default=False)
     args = parser.parse_args()
     if args.seed:
         random.seed(args.seed)
-    print('===DROGUE v0.5===')
+    print('===DROGUE v0.7===')
     print('By UtilityHotbar')
     print('Enter h for help.')
     print('Remember: You only get a score if you escape alive!')
