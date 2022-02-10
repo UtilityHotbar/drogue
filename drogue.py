@@ -125,7 +125,7 @@ def use_item(curr_room, player, item, amt):
     if item == 'torch':
         player['effects'] = modify_array(player['effects'], 'light', 5 * amt)
     elif item == 'food':
-        player['effects'] = modify_array(player['effects'], 'saturation', 5 * amt)
+        player['effects'] = modify_array(player['effects'], 'saturation', 15 * amt)
     elif item == 'scroll of smiting' or item == 'scroll of charming':
         for _ in range(amt):
             curr_room.remove('m')
@@ -147,7 +147,7 @@ def use_item(curr_room, player, item, amt):
 
 def main(verbose_mode):
     player = {'hp': 10, 'power': 0, 'level': 1, 'gold': 0, 'escape_diff': 0,
-              'items': ['torch\t3'], 'effects': ['light\t10', 'saturation\t10']}
+              'items': ['torch\t3'], 'effects': ['light\t10', 'saturation\t30']}
     while True:
         curr_level = generate_new_level(player['level'])
         curr_room_id = 0
