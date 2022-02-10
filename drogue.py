@@ -7,6 +7,7 @@ import re
 thingstring = 'agiiimmt'
 INVALID_INPUT_MESSAGE = 'Invalid input.'
 DEATH_MESSAGE = 'YOU DIED. SCORE 0'
+CONTINUE_MESSAGE = '<Press ENTER to continue>'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
                   'invisibility potion', 'scroll of fireball', 'holy water']
@@ -14,7 +15,7 @@ MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield', '
 SPECIAL_TABLE = ['scroll of smiting', 'scroll of charming', 'scroll of fireball', 'holy water', 'oil']
 SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion',]
 
-MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'na', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
+MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'ne', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
 
 
 def get_tab_split(obj, get_last=False):
@@ -63,6 +64,8 @@ def reduce_effects(player):
         player['effects'] = modify_array(player['effects'], effect_name, -1)
     if not check_exists(player['effects'], 'saturation'):
         print('You are hungry!')
+        player['hp'] -= 1
+    if check_exists(player['effects'], 'poison'):
         player['hp'] -= 1
     if player['hp'] <= 0:
         print(DEATH_MESSAGE)
@@ -155,7 +158,7 @@ def run_fight(player):
         player = reduce_effects(player)
         if not (check_exists(player['effects'], 'charm') or check_exists(player['effects'], 'paralysis')):
             dam = roll('1d6') + player['power'] + player['level']
-            if check_exists('sword', player['items']):
+            if check_exists(player['items'], 'sword'):
                 print('You use your sword!')
                 dam += roll ('1d6')
                 player['items'] = modify_array(player['items'], 'sword', -1)
@@ -175,13 +178,15 @@ def run_fight(player):
                 atkdone = True
         elif 'pa' in mon_name:
             if roll('1d6') > 5:
-                print(f'{mon_name} paralyses you for 1 round!')
-                player['effects'] = modify_array(player['effects'], 'paralysis', 1)
+                rounds = roll('1d3')
+                print(f'{mon_name} paralyses you for {rounds} rounds!')
+                player['effects'] = modify_array(player['effects'], 'paralysis', rounds)
                 atkdone = True
         elif 'ch' in mon_name:
             if roll('1d6') > 5:
-                print(f'{mon_name} charms you for 1 round!')
-                player['effects'] = modify_array(player['effects'], 'charm', 1)
+                rounds = roll('1d6')
+                print(f'{mon_name} charms you for {rounds} rounds!')
+                player['effects'] = modify_array(player['effects'], 'charm', rounds)
                 atkdone = True
         if 'ne' in mon_name:
             print(f'{mon_name}\'s necrotic aura saps life from you!')
@@ -189,7 +194,7 @@ def run_fight(player):
         if not atkdone:
             mdam = roll('1d6') + mon_atk
             print(f'{mon_name} deals {mdam} damage to you!')
-            if check_exists('shield', player['items']):
+            if check_exists(player['items'], 'shield'):
                 print('You use your shield!')
                 mdam -= roll('1d6')
                 player['items'] = modify_array(player['items'], 'shield', -1)
@@ -197,6 +202,9 @@ def run_fight(player):
         if player['hp'] <= 0:
             print(DEATH_MESSAGE)
             exit()
+    player['effects'] = modify_array(player['effects'], 'paralysis', -999)
+    player['effects'] = modify_array(player['effects'], 'charm', -999)
+
     return player
 
 
@@ -372,6 +380,7 @@ def main(verbose_mode):
                         print('A monster caught up!')
                         player = run_fight(player)
                     player['escape_diff'] += roll('1d6')
+                    input(CONTINUE_MESSAGE)
                     break
 
                 elif choice == 'q':
@@ -424,7 +433,7 @@ def main(verbose_mode):
                     print('EFFECT\tLENGTH')
                     for effect in player['effects']:
                         print(effect)
-                input('<Press ENTER to continue>')
+                input(CONTINUE_MESSAGE)
 
             curr_room_id += 1
             if curr_room_id >= len(curr_level):
