@@ -10,6 +10,7 @@ Download `drogue.py`. Run it using Python 3.8 or above. Newcomers are highly enc
 ## How do I play?
 ### Commands:
 * (nothing): next encounter
+* r: run to next room
 * h: display help
 * q: exit dungeon (finalise score)
 * u: use item
