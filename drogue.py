@@ -121,6 +121,7 @@ def run_fight(player):
                 if used:
                     player['items'] = modify_array(player['items'], choice, -1)
             elif choice in SPECIAL_TABLE:
+                player['items'] = modify_array(player['items'], choice, -1)
                 if choice == 'scroll of fireball':
                     print('Your fireball scorches the monster!')
                     mon_hp -= roll('4d6')
@@ -155,7 +156,6 @@ def run_fight(player):
             print('Sorry. You don\'t have any useable items.')
 
     while True:
-        player = reduce_effects(player)
         if not (check_exists(player['effects'], 'charm') or check_exists(player['effects'], 'paralysis')):
             dam = roll('1d6') + player['power'] + player['level']
             if check_exists(player['items'], 'sword'):
@@ -202,6 +202,7 @@ def run_fight(player):
         if player['hp'] <= 0:
             print(DEATH_MESSAGE)
             exit()
+        player = reduce_effects(player)
     player['effects'] = modify_array(player['effects'], 'paralysis', -999)
     player['effects'] = modify_array(player['effects'], 'charm', -999)
 
