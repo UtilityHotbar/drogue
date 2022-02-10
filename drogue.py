@@ -133,24 +133,25 @@ def main(verbose_mode):
         while True:
             curr_room = curr_level[curr_room_id]
             curr_enc = 0
+            done_encs = []
             while True:
                 os.system('cls' if os.name == 'nt' else 'clear')
                 if not verbose_mode:
                     display_string = f'l{player["level"]}\tr{curr_room_id+1}/{len(curr_level)}\te{curr_enc+1}/{len(curr_room)}\thp{player["hp"]}\tp{player["power"]}\tg{player["gold"]}\n'
                     if check_exists(player['effects'], 'light'):
                         for char in 'agimt':
-                            display_string += char+str(curr_room.count(char))+'\t'
+                            display_string += char+str(curr_room.count(char)-done_encs.count(char))+'\t'
                     else:
                         print('?'+str(len(curr_room)))
                     print(display_string)
                 else:
                     print('ROOM CONTENTS:')
                     if check_exists(player['effects'], 'light'):
-                        print(f'Altars: {curr_room.count("a")}')
-                        print(f'Gold: {curr_room.count("g")}')
-                        print(f'Monsters: {curr_room.count("m")}')
-                        print(f'Items: {curr_room.count("i")}')
-                        print(f'Traps: {curr_room.count("t")}')
+                        print(f'Altars: {curr_room.count("a")-done_encs.count("a")}')
+                        print(f'Gold: {curr_room.count("g")-done_encs.count("g")}')
+                        print(f'Monsters: {curr_room.count("m")-done_encs.count("m")}')
+                        print(f'Items: {curr_room.count("i")-done_encs.count("i")}')
+                        print(f'Traps: {curr_room.count("t")-done_encs.count("t")}')
                     else:
                         print(f'???: {len(curr_room)}')
                     print('\nPLAYER STATUS:')
@@ -165,6 +166,7 @@ def main(verbose_mode):
                     if curr_enc == len(curr_room):
                         break
                     encounter = curr_room[curr_enc]
+                    done_encs.append(encounter)
                     if encounter == 't':
                         print('Trap!')
                         if roll('2d6') < 7:
