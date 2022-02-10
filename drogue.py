@@ -4,13 +4,13 @@ import os
 import re
 import time
 
-thingstring = 'aggiimmt'
+thingstring = 'agiiimmt'
 INVALID_INPUT_MESSAGE = 'Invalid input.'
 DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
                   'invisibility potion']
-MUNDANE_TABLE = ['torch', 'torch', 'torch', 'sword', 'shield']
+MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'food', 'sword', 'shield']
 
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka','ma', ' ']
 
@@ -65,6 +65,10 @@ def run_fight(player):
     print(f'You are fighting {mon_name}.')
     while True:
         dam = roll('1d6') + player['power'] + player['level']
+        if check_exists('sword', player['items']):
+            print('You use your sword!')
+            dam += roll ('1d6')
+            player['items'] = modify_array(player['items'], 'sword', -1)
         print(f'You deal {dam} damage to {mon_name}!')
         mon_hp -= dam
         if mon_hp <= 0:
@@ -72,7 +76,11 @@ def run_fight(player):
             break
         mdam = roll('1d6') + mon_atk
         print(f'{mon_name} deals {mdam} damage to you!')
-        player['hp'] -= dam
+        if check_exists('shield', player['items']):
+            print('You use your shield!')
+            mdam -= roll ('1d6')
+            player['items'] = modify_array(player['items'], 'shield', -1)
+        player['hp'] -= mdam
         if player['hp'] <= 0:
             print(DEATH_MESSAGE)
             exit()
@@ -115,6 +123,8 @@ def modify_array(array, thing, amt):
 def use_item(curr_room, player, item, amt):
     if item == 'torch':
         player['effects'] = modify_array(player['effects'], 'light', 5 * amt)
+    elif item == 'food':
+        player['effects'] = modify_array(player['effects'], 'saturation', 5 * amt)
     elif item == 'scroll of smiting' or item == 'scroll of charming':
         for _ in range(amt):
             curr_room.remove('m')
@@ -133,8 +143,8 @@ def use_item(curr_room, player, item, amt):
 
 
 def main(verbose_mode):
-    player = {'hp': 10, 'power': 0, 'level': 1, 'gold': 0,
-              'items': ['torch\t3'], 'effects': ['light\t10']}
+    player = {'hp': 10, 'power': 0, 'level': 1, 'gold': 0, 'escape_diff': 0,
+              'items': ['torch\t3'], 'effects': ['light\t10', 'saturation\t10']}
     while True:
         curr_level = generate_new_level(player['level'])
         curr_room_id = 0
@@ -224,18 +234,34 @@ def main(verbose_mode):
                     curr_enc += 1
                     for effect in player['effects']:
                         player['effects'] = modify_array(player['effects'], effect, -1)
+                    if not check_exists(player['effects'], 'saturation'):
+                        print('You are hungry!')
+                        player['hp'] -= 1
+                    if not check_exists(player['effects'], 'light'):
+                        print('You are in the dark!')
                     if player['hp'] <= 0:
                         print(DEATH_MESSAGE)
                         exit()
 
                 elif choice == 'h' or choice == 'help':
                     print('Commands:')
-                    print('(nothing): next encounter\nh: display help\nq: exit dungeon (finalise score)\nu: use item\nc: check status')
+                    print('(nothing): next encounter\nr: run to next room\nh: display help\nq: exit dungeon (finalise score)\nu: use item\nc: check status')
                     print('Options (use when starting new game from command line):')
                     print('--vb: verbose descriptions\n--seed: starting seed')
 
-                elif choice == 'q':
+                elif choice == 'r':
                     atk_chance = 0
+                    for enc in curr_room:
+                        if enc == 'm':
+                            atk_chance += 10
+                    if roll('1d100') < atk_chance:
+                        print('A monster caught up!')
+                        player = run_fight(player)
+                    player['escape_diff'] += roll('1d6')
+                    break
+
+                elif choice == 'q':
+                    atk_chance = player['escape_diff']
                     for enc in curr_room:
                         if enc == 'm':
                             atk_chance += 10
