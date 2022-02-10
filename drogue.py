@@ -9,7 +9,7 @@ INVALID_INPUT_MESSAGE = 'Invalid input.'
 DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
-                  'invisibility potion']
+                  'invisibility potion', 'scroll of fireball']
 MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield']
 
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka','ma', ' ']
@@ -132,6 +132,8 @@ def use_item(curr_room, player, item, amt):
     elif item == 'scroll of seeing':
         for _ in range(amt):
             print(''.join(curr_room))
+    elif item == 'scroll of fireball':
+        curr_room = []
     elif item == 'healing potion':
         for _ in range(amt):
             player['hp'] += roll('1d6')
@@ -147,7 +149,7 @@ def use_item(curr_room, player, item, amt):
 
 def main(verbose_mode):
     player = {'hp': 10, 'power': 0, 'level': 1, 'gold': 0, 'escape_diff': 0,
-              'items': ['torch\t3'], 'effects': ['light\t10', 'saturation\t30']}
+              'items': ['torch\t3', 'scroll of fireball\t1'], 'effects': ['light\t10', 'saturation\t30']}
     while True:
         curr_level = generate_new_level(player['level'])
         curr_room_id = 0
@@ -184,7 +186,7 @@ def main(verbose_mode):
                     print(f'GOLD: {player["gold"]}')
                 choice = input('> ').lower()
                 if not choice:
-                    if curr_enc == len(curr_room):
+                    if curr_enc >= len(curr_room):
                         break
                     encounter = curr_room[curr_enc]
                     done_encs.append(encounter)
@@ -285,7 +287,7 @@ def main(verbose_mode):
                         print(str(id)+'\t'+item)
                         id += 1
                     while True:
-                        item_choice = input(f'(1-{id} OR q)>')
+                        item_choice = input(f'(1-{id-1} OR q)>')
                         if item_choice == 'q':
                             break
                         else:
@@ -313,7 +315,7 @@ def main(verbose_mode):
                 input('<Press ENTER to continue>')
 
             curr_room_id += 1
-            if curr_room_id == len(curr_level):
+            if curr_room_id >= len(curr_level):
                 break
         player['level'] += 1
         print('You descend...')
