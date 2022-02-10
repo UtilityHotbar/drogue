@@ -1,5 +1,5 @@
 # drogue
-Dimly-lit dungeons, deep delving dooms.
+Dimly-lit dungeons, deep delving dooms. Rogue in the dark.
 
 ## What is this?
 Drogue is a 1-dimensional roguelike. You can only go in two directions - forward (deeper into the dungeon) and backwards (fleeing to safety). You will receive hints that tell you what encounters remain in each room. If you run away while monsters are still present, they might catch up!
