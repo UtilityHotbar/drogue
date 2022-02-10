@@ -9,13 +9,17 @@ INVALID_INPUT_MESSAGE = 'Invalid input.'
 DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
-                  'invisibility potion', 'scroll of fireball']
-MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield']
+                  'invisibility potion', 'scroll of fireball', 'holy water']
+MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield', 'oil']
+SPECIAL_TABLE = ['scroll of smiting', 'scroll of charming', 'scroll of fireball', 'holy water', 'oil']
+SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion',]
 
-MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka', 'ma', ' ']
+MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'na', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
 
 
-def get_tab_split(obj):
+def get_tab_split(obj, get_last=False):
+    if get_last:
+        return '\t'.join(obj.split('\t')[-1])
     return '\t'.join(obj.split('\t')[:-1])
 
 
@@ -53,6 +57,19 @@ def generate_new_level(curr_depth):
     return curr_level
 
 
+def reduce_effects(player):
+    for effect in player['effects']:
+        effect_name = get_tab_split(effect)
+        player['effects'] = modify_array(player['effects'], effect_name, -1)
+    if not check_exists(player['effects'], 'saturation'):
+        print('You are hungry!')
+        player['hp'] -= 1
+    if player['hp'] <= 0:
+        print(DEATH_MESSAGE)
+        exit()
+    return player
+
+
 def run_fight(player):
     if check_exists(player['effects'], 'invisibility'):
         print('Invisible, you sneak by!')
@@ -62,25 +79,121 @@ def run_fight(player):
     mon_name = ''
     for _ in range(roll('1d6')):
         mon_name += random.choice(MONSTER_NAMES)
-    print(f'You are fighting {mon_name}.')
+    print(f'You encounter {mon_name}.\n[F]ight, [R]un, or [U]se item?')
     while True:
-        dam = roll('1d6') + player['power'] + player['level']
-        if check_exists('sword', player['items']):
-            print('You use your sword!')
-            dam += roll ('1d6')
-            player['items'] = modify_array(player['items'], 'sword', -1)
-        print(f'You deal {dam} damage to {mon_name}!')
-        mon_hp -= dam
+        choice = input('(f/r/u)> ').lower()
+        if not choice in 'fru':
+            print(INVALID_INPUT_MESSAGE)
+        else:
+            break
+    if choice == 'r':
+        if roll('1d6') < 3:
+            print('You escape!')
+        else:
+            print(f'{mon_name} catches up, and it attacks first!')
+            player['effects'] = modify_array(player['effects'], 'paralysis', 1)
+    elif choice == 'u':
+        print('Common combat items are automatically used. You can also use a special item before combat.')
+        print('ID\tNAME\tAMT')
+        id = 1
+        available_items = []
+        for item in player['items']:
+            item_name = get_tab_split(item)
+            if item_name in SPECIAL_TABLE+SELF_TABLE:
+                print(str(id)+'\t'+item)
+                available_items.append(item_name)
+                id += 1
+        if available_items:
+            while True:
+                c = input('(ID OR q)> ').lower()
+                if c == 'q':
+                    break
+                try:
+                    choice = available_items[int(c)-1]
+                    break
+                except ValueError:
+                    print(INVALID_INPUT_MESSAGE)
+            if choice in SELF_TABLE:
+                _, player, used = use_item(None, player, choice, 1)
+                if used:
+                    player['items'] = modify_array(player['items'], choice, -1)
+            elif choice in SPECIAL_TABLE:
+                if choice == 'scroll of fireball':
+                    print('Your fireball scorches the monster!')
+                    mon_hp -= roll('4d6')
+                    if mon_hp <= 0:
+                        print('It dies!')
+                        return player
+                elif choice == 'scroll of smiting':
+                    print('Your missile smites the monster!')
+                    mon_hp -= roll('2d6')
+                    if mon_hp <= 0:
+                        print('It dies!')
+                        return player
+                elif choice == 'scroll of charming':
+                    print('You charm the monster to get past!')
+                    return player
+                elif choice == 'holy water':
+                    if 'ne' in mon_name:
+                        print('The holy water repels the undead creature!')
+                        return player
+                    else:
+                        print('The holy water has no effect!')
+                elif choice == 'oil':
+                    if check_exists(player['effects'], 'light'):
+                        print('You light the monster on fire with your torch!')
+                        mon_hp -= roll('1d6')
+                        if mon_hp <= 0:
+                            print('It dies!')
+                            return player
+                    else:
+                        print('You splash oil, but you can\'t light it on fire in the dark...')
+        else:
+            print('Sorry. You don\'t have any useable items.')
+
+    while True:
+        player = reduce_effects(player)
+        if not (check_exists(player['effects'], 'charm') or check_exists(player['effects'], 'paralysis')):
+            dam = roll('1d6') + player['power'] + player['level']
+            if check_exists('sword', player['items']):
+                print('You use your sword!')
+                dam += roll ('1d6')
+                player['items'] = modify_array(player['items'], 'sword', -1)
+            print(f'You deal {dam} damage to {mon_name}!')
+            mon_hp -= dam
+        else:
+            print('You can\'t attack this round!')
         if mon_hp <= 0:
             print(f'{mon_name} dies!')
             break
-        mdam = roll('1d6') + mon_atk
-        print(f'{mon_name} deals {mdam} damage to you!')
-        if check_exists('shield', player['items']):
-            print('You use your shield!')
-            mdam -= roll ('1d6')
-            player['items'] = modify_array(player['items'], 'shield', -1)
-        player['hp'] -= mdam
+        atkdone = False
+        if 'po' in mon_name:
+            if roll('1d6') > 3:
+                rounds = roll('1d6')
+                print(f'{mon_name} poisons you for {rounds} rounds!')
+                player['effects'] = modify_array(player['effects'], 'poison', rounds)
+                atkdone = True
+        elif 'pa' in mon_name:
+            if roll('1d6') > 5:
+                print(f'{mon_name} paralyses you for 1 round!')
+                player['effects'] = modify_array(player['effects'], 'paralysis', 1)
+                atkdone = True
+        elif 'ch' in mon_name:
+            if roll('1d6') > 5:
+                print(f'{mon_name} charms you for 1 round!')
+                player['effects'] = modify_array(player['effects'], 'charm', 1)
+                atkdone = True
+        if 'ne' in mon_name:
+            print(f'{mon_name}\'s necrotic aura saps life from you!')
+            player['hp'] -= roll('1d3')
+        if not atkdone:
+            mdam = roll('1d6') + mon_atk
+            print(f'{mon_name} deals {mdam} damage to you!')
+            if check_exists('shield', player['items']):
+                print('You use your shield!')
+                mdam -= roll('1d6')
+                player['items'] = modify_array(player['items'], 'shield', -1)
+            player['hp'] -= mdam
         if player['hp'] <= 0:
             print(DEATH_MESSAGE)
             exit()
@@ -88,7 +201,7 @@ def run_fight(player):
 
 
 def score_calc(player):
-    score = player['gold']
+    score = player['gold']+player['level']*10
     for item in player['items']:
         first_part = '\t'.join(item.split('\t')[:-1])
         if first_part in MUNDANE_TABLE:
@@ -98,10 +211,13 @@ def score_calc(player):
     return score
 
 
-def check_exists(array, thing):
+def check_exists(array, thing, amt=None):
     for obj in array:
         if get_tab_split(obj) == thing:
-            return True
+            if not amt:
+                return True
+            else:
+                return int(get_tab_split(obj, get_last=True)) >= amt
     return False
 
 
@@ -177,6 +293,7 @@ def main(verbose_mode):
                         print(f'Items: {curr_room.count("i")-done_encs.count("i")}')
                         print(f'Traps: {curr_room.count("t")-done_encs.count("t")}')
                     else:
+                        print('You are in darkness!')
                         print(f'???: {len(curr_room[curr_enc:])}')
                     print('\nPLAYER STATUS:')
                     print(f'Current level: {player["level"]}')
@@ -238,16 +355,7 @@ def main(verbose_mode):
                         print(f'It\'s a {found_item}.')
                         player['items'] = modify_array(player['items'], found_item, 1)
                     curr_enc += 1
-                    for effect in player['effects']:
-                        player['effects'] = modify_array(player['effects'], get_tab_split(effect), -1)
-                    if not check_exists(player['effects'], 'saturation'):
-                        print('You are hungry!')
-                        player['hp'] -= 1
-                    if not check_exists(player['effects'], 'light'):
-                        print('You are in the dark!')
-                    if player['hp'] <= 0:
-                        print(DEATH_MESSAGE)
-                        exit()
+                    player = reduce_effects(player)
 
                 elif choice == 'h' or choice == 'help':
                     print('Commands:')
@@ -288,7 +396,7 @@ def main(verbose_mode):
                         print(str(id)+'\t'+item)
                         id += 1
                     while True:
-                        item_choice = input(f'(1-{id-1} OR q)>')
+                        item_choice = input(f'(ID OR q)> ').lower()
                         if item_choice == 'q':
                             break
                         else:
@@ -300,13 +408,16 @@ def main(verbose_mode):
                                 else:
                                     item_amt = 1
                                 target_item = get_tab_split(player['items'][item_code-1])
-                                print(f'Using {item_amt} {target_item}.')
-                                curr_room, player, used_item = use_item(curr_room, player, target_item, item_amt)
-                                if used_item:
-                                    player['items'] = modify_array(player['items'], target_item, -item_amt)
+                                if check_exists(player['items'], target_item, amt=item_amt):
+                                    print(f'Using {item_amt} {target_item}.')
+                                    curr_room, player, used_item = use_item(curr_room, player, target_item, item_amt)
+                                    if used_item:
+                                        player['items'] = modify_array(player['items'], target_item, -item_amt)
+                                    else:
+                                        print('You cannot use that item right now.')
+                                    break
                                 else:
-                                    print('You cannot use that item right now.')
-                                break
+                                    print('You don\'t have that item or enough of that item.')
                             except ValueError:
                                 print(INVALID_INPUT_MESSAGE)
                 elif choice == 'c':
