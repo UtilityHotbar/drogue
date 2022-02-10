@@ -10,7 +10,7 @@ DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
                   'invisibility potion']
-MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'food', 'sword', 'shield']
+MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield']
 
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'no', 'na', 'ra', 'ta', 'th', 'iu', 'ou', 'ga', 'ka','ma', ' ']
 
@@ -107,16 +107,17 @@ def check_exists(array, thing):
 
 def modify_array(array, thing, amt):
     narray = []
-    added = True
+    added = False
     for obj in array:
         if get_tab_split(obj) == thing:
             namt = int(obj.split('\t')[-1])+amt
             if namt > 0:
                 narray.append(get_tab_split(obj)+'\t'+str(namt))
+            added = True
         else:
             narray.append(obj)
     if not added and amt > 0:
-        narray.append(thing+'\t'+amt)
+        narray.append(thing+'\t'+str(amt))
     return narray
 
 
@@ -139,7 +140,9 @@ def use_item(curr_room, player, item, amt):
             player['power'] += 1
     elif item == 'invisibility potion':
         player['effects'] = modify_array(player['effects'], 'invisibility', 3 * amt)
-    return curr_room, player
+    else:
+        return curr_room, player, False
+    return curr_room, player, True
 
 
 def main(verbose_mode):
@@ -273,11 +276,14 @@ def main(verbose_mode):
                         exit()
                     else:
                         print('YOU ESCAPED. SCORE', score_calc(player))
+                        quit()
+
                 elif choice == 'u':
                     id = 1
+                    print('ID\tNAME\tAMT')
                     for item in player['items']:
-                        print('ID\tNAME\tAMT')
                         print(str(id)+'\t'+item)
+                        id += 1
                     while True:
                         item_choice = input(f'(1-{id} OR q)>')
                         if item_choice == 'q':
@@ -291,9 +297,12 @@ def main(verbose_mode):
                                 else:
                                     item_amt = 1
                                 target_item = get_tab_split(player['items'][item_code-1])
-                                print(f'Using {target_item}.')
-                                player['items'] = modify_array(player['items'], target_item, -item_amt)
-                                curr_room, player = use_item(curr_room, player, target_item, item_amt)
+                                print(f'Using {item_amt} {target_item}.')
+                                curr_room, player, used_item = use_item(curr_room, player, target_item, item_amt)
+                                if used_item:
+                                    player['items'] = modify_array(player['items'], target_item, -item_amt)
+                                else:
+                                    print('You cannot use that item right now.')
                                 break
                             except ValueError:
                                 print(INVALID_INPUT_MESSAGE)
