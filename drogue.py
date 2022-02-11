@@ -9,13 +9,15 @@ INVALID_INPUT_MESSAGE = 'Invalid input.'
 DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 CONTINUE_MESSAGE = '<Press ENTER to continue>'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
-TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
-                  'invisibility potion', 'scroll of fireball', 'holy water', 'scroll of warding']
+TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'healing potion',
+                  'healing potion', 'power potion', 'invisibility potion', 'scroll of fireball', 'holy water',
+                  'scroll of warding']
 MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield', 'oil']
 SPECIAL_TABLE = ['scroll of smiting', 'scroll of charming', 'scroll of fireball', 'holy water', 'oil']
 SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion', 'scroll of warding']
 
-MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'ne', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
+MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'ne', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa',
+                 'ru']
 
 
 def end_game():
@@ -91,6 +93,8 @@ def run_fight(player, verbose_mode=False):
     if verbose_mode:
         if 'ne' in mon_name:
             print('* This monster is necrotic.')
+        if 'ru' in mon_name:
+            print('* This monster is fast (hard to escape).')
         if 'po' in mon_name:
             print('* This monster poisons you.')
         elif 'pa' in mon_name:
@@ -105,7 +109,10 @@ def run_fight(player, verbose_mode=False):
         else:
             break
     if choice == 'r':
-        if roll('1d6') < 3:
+        run_roll = roll('1d6')
+        if 'ru' in mon_name:
+            run_roll -= 1
+        if run_roll > 4:
             print('You escape!')
             return player
         else:
@@ -178,7 +185,7 @@ def run_fight(player, verbose_mode=False):
             dam = roll('1d6') + player['power'] + player['level']
             if check_exists(player['items'], 'sword'):
                 print('You use your sword!')
-                dam += roll ('1d6')
+                dam += roll('1d6')
                 player['items'] = modify_array(player['items'], 'sword', -1)
             print(f'You deal {dam} damage to {mon_name}!')
             mon_hp -= dam
@@ -304,8 +311,8 @@ def use_item(curr_level, curr_room_id, player, item, amt):
     return curr_level, player, True
 
 
-def main(verbose_mode):
-    player = {'hp': 10, 'power': 0, 'level': 1, 'gold': 0, 'escape_diff': 0,
+def main(verbose_mode, name):
+    player = {'name': name, 'hp': 10, 'power': 0, 'level': 1, 'gold': 0, 'escape_diff': 0,
               'items': ['torch\t3', 'scroll of fireball\t1'], 'effects': ['light\t10', 'saturation\t30']}
     while True:
         curr_level = generate_new_level(player['level'])
@@ -316,6 +323,7 @@ def main(verbose_mode):
             done_encs = []
             while True:
                 os.system('cls' if os.name == 'nt' else 'clear')
+                print(str(player['name'])+'\'s adventure')
                 if not verbose_mode:
                     display_string = f'l{player["level"]}\tr{curr_room_id+1}/{len(curr_level)}\te{curr_enc+1}/{len(curr_room)}\thp{player["hp"]}\tp{player["power"]}\tg{player["gold"]}\n'
                     if check_exists(player['effects'], 'light'):
@@ -342,6 +350,7 @@ def main(verbose_mode):
                     print(f'HP: {player["hp"]}')
                     print(f'POWER: {player["power"]}')
                     print(f'GOLD: {player["gold"]}')
+                    print('[Press ENTER] for next encounter, [H]elp, [U]se item, [C]heck status, [Q]uit dungeon, [R]un to next room?')
                 choice = input('> ').lower()
                 if not choice:
                     if curr_enc >= len(curr_room):
@@ -350,7 +359,10 @@ def main(verbose_mode):
                     done_encs.append(encounter)
                     if encounter == 't':
                         print('Trap!')
-                        if roll('2d6') < 7:
+                        trap_roll = roll('2d6')
+                        if check_exists(player['effects'], 'light'):
+                            trap_roll += 1
+                        if trap_roll < 7:
                             player['hp'] -= roll('1d6')
                             print('You get hit!')
                         else:
@@ -367,7 +379,7 @@ def main(verbose_mode):
                         while True:
                             pray = input('(Pray y/n)> ').lower()
                             if pray == 'y':
-                                if roll('1d100') <= player['level']:
+                                if roll('1d100') <= player['level']*10:
                                     print('A god notices!')
                                     attention = roll('1d6')
                                     if attention == 1:
@@ -428,7 +440,7 @@ def main(verbose_mode):
                         end_game()
                     else:
                         print('YOU ESCAPED. SCORE', score_calc(player))
-                        quit()
+                        end_game()
 
                 elif choice == 'u':
                     id = 1
@@ -471,8 +483,11 @@ def main(verbose_mode):
             curr_room_id += 1
             if curr_room_id >= len(curr_level):
                 break
+        print('You descend... [LEVEL UP]')
         player['level'] += 1
-        print('You descend...')
+        player['hp'] += 10
+        player['power'] += 1
+        input(CONTINUE_MESSAGE)
 
 
 if __name__ == '__main__':
@@ -482,9 +497,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.seed:
         random.seed(args.seed)
-    print('===DROGUE v0.9===')
+    print('===DROGUE v1.0===')
     print('By UtilityHotbar')
     print('Enter h for help.')
     print('Remember: You only get a score if you escape alive!')
-    input('<Press ENTER to start>')
-    main(not args.quiet)
+    name = input('(Enter name to start)> ')
+    main(not args.quiet, name)
