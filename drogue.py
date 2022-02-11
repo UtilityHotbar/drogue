@@ -396,7 +396,7 @@ def main(verbose_mode):
                     print('Commands:')
                     print('(nothing): next encounter\nr: run to next room\nh: display help\nq: exit dungeon (finalise score)\nu: use item\nc: check status')
                     print('Options (use when starting new game from command line):')
-                    print('-vb: verbose descriptions\n--seed: starting seed')
+                    print('-q: compact descriptions\n--seed: starting seed')
 
                 elif choice == 'r':
                     atk_chance = 0
