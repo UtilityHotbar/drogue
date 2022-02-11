@@ -2,6 +2,10 @@
 Dimly-lit dungeons, deep delving dooms. Rogue in the dark.
 
 ## Changelog
+(0.9 -> 1.0)
+* Characters can now have names
+* Various updates
+* Finalised mechanics
 (0.7 -> 0.9)
 * Verbose mode is now default. To use minimised mode use the --quiet or -q flag instead.
 * Assorted updates
