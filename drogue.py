@@ -10,10 +10,10 @@ DEATH_MESSAGE = 'YOU DIED. SCORE 0'
 CONTINUE_MESSAGE = '<Press ENTER to continue>'
 DICE_NOTATION = re.compile(r'(\d+)d(\d+)(kh|kl)?(\d+)?')
 TREASURE_TABLE = ['scroll of smiting', 'scroll of seeing', 'scroll of charming', 'healing potion', 'power potion',
-                  'invisibility potion', 'scroll of fireball', 'holy water']
+                  'invisibility potion', 'scroll of fireball', 'holy water', 'scroll of warding']
 MUNDANE_TABLE = ['torch', 'torch', 'torch', 'food', 'food', 'sword', 'shield', 'oil']
 SPECIAL_TABLE = ['scroll of smiting', 'scroll of charming', 'scroll of fireball', 'holy water', 'oil']
-SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion',]
+SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion', 'scroll of warding']
 
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'ne', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
 
@@ -73,7 +73,7 @@ def reduce_effects(player):
     return player
 
 
-def run_fight(player):
+def run_fight(player, verbose_mode=False):
     if check_exists(player['effects'], 'invisibility'):
         print('Invisible, you sneak by!')
         return player
@@ -82,7 +82,17 @@ def run_fight(player):
     mon_name = ''
     for _ in range(roll('1d6')):
         mon_name += random.choice(MONSTER_NAMES)
-    print(f'You encounter {mon_name}.\n[F]ight, [R]un, or [U]se item?')
+    print(f'You encounter {mon_name}.')
+    if verbose_mode:
+        if 'ne' in mon_name:
+            print('* This monster is necrotic.')
+        if 'po' in mon_name:
+            print('* This monster poisons you.')
+        elif 'pa' in mon_name:
+            print('* This monster paralyses you.')
+        elif 'ch' in mon_name:
+            print('* This monster charms you.')
+    print('[F]ight, [R]un, or [U]se item?')
     while True:
         choice = input('(f/r/u)> ').lower()
         if not choice in 'fru':
@@ -97,7 +107,9 @@ def run_fight(player):
             print(f'{mon_name} catches up, and it attacks first!')
             player['effects'] = modify_array(player['effects'], 'paralysis', 1)
     elif choice == 'u':
-        print('Common combat items are automatically used. You can also use a special item before combat.')
+        if verbose_mode:
+            print('Common combat items are automatically used. You can also use some items before combat.'
+                  'Scrolls will be weaker, since you are casting in haste.')
         print('ID\tNAME\tAMT')
         id = 1
         available_items = []
@@ -118,7 +130,7 @@ def run_fight(player):
                 except ValueError:
                     print(INVALID_INPUT_MESSAGE)
             if choice in SELF_TABLE:
-                _, player, used = use_item(None, player, choice, 1)
+                _, player, used = use_item([], 0, player, choice, 1)
                 if used:
                     player['items'] = modify_array(player['items'], choice, -1)
             elif choice in SPECIAL_TABLE:
@@ -154,7 +166,7 @@ def run_fight(player):
                     else:
                         print('You splash oil, but you can\'t light it on fire in the dark...')
         else:
-            print('Sorry. You don\'t have any useable items.')
+            print('Sorry. You don\'t have any usable items.')
 
     while True:
         if not (check_exists(player['effects'], 'charm') or check_exists(player['effects'], 'paralysis')):
@@ -181,17 +193,26 @@ def run_fight(player):
             if roll('1d6') > 5:
                 rounds = roll('1d3')
                 print(f'{mon_name} paralyses you for {rounds} rounds!')
-                player['effects'] = modify_array(player['effects'], 'paralysis', rounds)
+                if not check_exists(player['effects'], 'warding'):
+                    player['effects'] = modify_array(player['effects'], 'paralysis', rounds)
+                else:
+                    print('Your ward repels the effect!')
                 atkdone = True
         elif 'ch' in mon_name:
             if roll('1d6') > 5:
                 rounds = roll('1d6')
                 print(f'{mon_name} charms you for {rounds} rounds!')
-                player['effects'] = modify_array(player['effects'], 'charm', rounds)
+                if not check_exists(player['effects'], 'warding'):
+                    player['effects'] = modify_array(player['effects'], 'charm', rounds)
+                else:
+                    print('Your ward repels the effect!')
                 atkdone = True
         if 'ne' in mon_name:
             print(f'{mon_name}\'s necrotic aura saps life from you!')
-            player['hp'] -= roll('1d3')
+            if not check_exists(player['effects'], 'warding'):
+                player['hp'] -= roll('1d3')
+            else:
+                print('Your ward repels the effect!')
         if not atkdone:
             mdam = roll('1d6') + mon_atk
             print(f'{mon_name} deals {mdam} damage to you!')
@@ -247,7 +268,8 @@ def modify_array(array, thing, amt):
     return narray
 
 
-def use_item(curr_room, player, item, amt):
+def use_item(curr_level, curr_room_id, player, item, amt):
+    curr_room = curr_level[curr_room_id]
     if item == 'torch':
         player['effects'] = modify_array(player['effects'], 'light', 5 * amt)
     elif item == 'food':
@@ -261,6 +283,8 @@ def use_item(curr_room, player, item, amt):
             print(''.join(curr_room))
     elif item == 'scroll of fireball':
         curr_room = []
+    elif item == 'scroll of warding':
+        player['effects'] = modify_array(player['effects'], 'warding', 3 * amt)
     elif item == 'healing potion':
         for _ in range(amt):
             player['hp'] += roll('1d6')
@@ -270,8 +294,9 @@ def use_item(curr_room, player, item, amt):
     elif item == 'invisibility potion':
         player['effects'] = modify_array(player['effects'], 'invisibility', 3 * amt)
     else:
-        return curr_room, player, False
-    return curr_room, player, True
+        return curr_level, player, False
+    curr_level[curr_room_id] = curr_room
+    return curr_level, player, True
 
 
 def main(verbose_mode):
@@ -331,7 +356,7 @@ def main(verbose_mode):
                         print(f'You now have {player["gold"]} gold.')
                     elif encounter == 'm':
                         print('Monster!')
-                        player = run_fight(player)
+                        player = run_fight(player, verbose_mode)
                     elif encounter == 'a':
                         print('Altar!')
                         while True:
@@ -421,7 +446,8 @@ def main(verbose_mode):
                                 target_item = get_tab_split(player['items'][item_code-1])
                                 if check_exists(player['items'], target_item, amt=item_amt):
                                     print(f'Using {item_amt} {target_item}.')
-                                    curr_room, player, used_item = use_item(curr_room, player, target_item, item_amt)
+                                    curr_level, player, used_item = use_item(curr_level, curr_room_id, player, target_item, item_amt)
+                                    curr_room = curr_level[curr_room_id]
                                     if used_item:
                                         player['items'] = modify_array(player['items'], target_item, -item_amt)
                                     else:
@@ -447,13 +473,13 @@ def main(verbose_mode):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Dimly-lit dungeons, deep delving dooms.')
     parser.add_argument('--seed', type=str, help='Seed for the game.', default='')
-    parser.add_argument('--verbose', '-vb', help='Verbose mode.', action='store_true', default=False)
+    parser.add_argument('--quiet', '-q', help='Quiet mode.', action='store_true', default=False)
     args = parser.parse_args()
     if args.seed:
         random.seed(args.seed)
-    print('===DROGUE v0.7===')
+    print('===DROGUE v0.9===')
     print('By UtilityHotbar')
     print('Enter h for help.')
     print('Remember: You only get a score if you escape alive!')
     input('<Press ENTER to start>')
-    main(args.verbose)
+    main(not args.quiet)
