@@ -18,6 +18,11 @@ SELF_TABLE = ['healing potion', 'power potion', 'invisibility potion', 'scroll o
 MONSTER_NAMES = ['ai', 'ei', 'ar', 'ou', 'po', 'no', 'ne', 'ra', 'ta', 'th', 'ch', 'iu', 'ou', 'ga', 'ka', 'ma', 'pa']
 
 
+def end_game():
+    input('<Press ENTER to end game>')
+    quit(0)
+
+
 def get_tab_split(obj, get_last=False):
     if get_last:
         return '\t'.join(obj.split('\t')[-1])
@@ -69,7 +74,7 @@ def reduce_effects(player):
         player['hp'] -= 1
     if player['hp'] <= 0:
         print(DEATH_MESSAGE)
-        exit()
+        end_game()
     return player
 
 
@@ -223,7 +228,7 @@ def run_fight(player, verbose_mode=False):
             player['hp'] -= mdam
         if player['hp'] <= 0:
             print(DEATH_MESSAGE)
-            exit()
+            end_game()
         player = reduce_effects(player)
     player['effects'] = modify_array(player['effects'], 'paralysis', -999)
     player['effects'] = modify_array(player['effects'], 'charm', -999)
@@ -420,7 +425,7 @@ def main(verbose_mode):
                         player = run_fight(player)
                     if player['hp'] <= 0:
                         print(DEATH_MESSAGE)
-                        exit()
+                        end_game()
                     else:
                         print('YOU ESCAPED. SCORE', score_calc(player))
                         quit()
